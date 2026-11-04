@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	version  = "2.1.0"
+	version  = "2.2.0"
 	glmModel = "glm-4.5-flash"
 	zaiBase  = "https://api.z.ai/api/anthropic"
 	keyPage  = "https://z.ai/manage-apikey/apikey-list"
@@ -33,10 +33,11 @@ const (
 )
 
 var (
-	flagNoStart = flag.Bool("no-start", false, "設定完不開 Claude Code（測試用）")
+	flagNoStart = flag.Bool("no-start", false, "設定完不打開工具（測試用）")
 	flagNoTest  = flag.Bool("no-test", false, "不跑「準備好了」測試")
 	flagNoWait  = flag.Bool("no-wait", false, "出錯時不等 Enter（測試用）")
 	flagHome    = flag.String("home", "", "改用別的使用者資料夾（測試用）")
+	flagTool    = flag.String("tool", "", "直接選工具：claude 或 opencode（不跳選擇視窗）")
 )
 
 var stdin = bufio.NewReader(os.Stdin)
@@ -45,7 +46,7 @@ func main() {
 	flag.Parse()
 	platformInit()
 	fmt.Printf("\n  ==============================================\n")
-	fmt.Printf("    AI 課程一鍵安裝  Claude Code ＋ GLM（v%s）\n", version)
+	fmt.Printf("    AI 課程一鍵安裝  Claude Code ／ OpenCode（v%s）\n", version)
 	fmt.Printf("  ==============================================\n\n")
 	if err := run(); err != nil {
 		fmt.Printf("\n  ✗ 沒有完成：%v\n", err)
@@ -61,70 +62,6 @@ func home() string {
 	}
 	h, _ := os.UserHomeDir()
 	return h
-}
-
-func run() error {
-	fmt.Println("  【1/3】安裝 Claude Code（第一次要下載約 120 MB，請不要關掉這個視窗）")
-	cc, err := installClaude()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("        ✓ 裝好了（%s）\n", strings.TrimSpace(output(cc, "", "--version")))
-	extra, err := platformDeps() // Windows：Git Bash
-	if err != nil {
-		return err
-	}
-	work := filepath.Join(home(), workName)
-	if err := os.MkdirAll(work, 0o755); err != nil {
-		return fmt.Errorf("建不了資料夾 %s：%v", work, err)
-	}
-	if _, err := os.Stat(filepath.Join(work, "CLAUDE.md")); err != nil {
-		os.WriteFile(filepath.Join(work, "CLAUDE.md"), []byte("# AI 課程\n\n- 一律用繁體中文（台灣用語）回答。\n- 使用者是第一次接觸程式的學生：步驟講清楚、一次一步、少用術語。\n- 打開網頁或檔案：Mac 用 `open 檔名`，Windows 用 `start 檔名`。\n- 指令一次只下一個，不要用 && 或 ; 串在一起。\n"), 0o644)
-	}
-	fmt.Printf("        ✓ 工作資料夾：%s\n\n", work)
-
-	fmt.Println("  【2/3】填 Z.AI 金鑰")
-	settings := filepath.Join(home(), ".claude", "settings.json")
-	old := currentKey(settings)
-	key, err := askKey(old != "")
-	if err != nil {
-		return err
-	}
-	if key == "" {
-		key = old
-		fmt.Println("        ✓ 沿用原本的金鑰")
-	}
-	if err := writeSettings(settings, key, extra); err != nil {
-		return fmt.Errorf("寫不進設定：%v", err)
-	}
-	if err := skipOnboarding(work); err != nil {
-		return fmt.Errorf("寫不進設定：%v", err)
-	}
-	fmt.Printf("        ✓ 接好 Z.AI，模型：%s\n\n", glmModel)
-
-	fmt.Println("  【3/3】測試：請 AI 回一句話（約 10–60 秒）")
-	if !*flagNoTest {
-		t0 := time.Now()
-		if out, err := runTest(cc, work); err != nil {
-			fmt.Printf("        ! 測試沒過：%v\n        先繼續，打開後問它一句話試試。\n", err)
-		} else {
-			fmt.Printf("        ✓ AI 回：%s（%.0f 秒）\n", out, time.Since(t0).Seconds())
-		}
-	}
-	if l := makeLauncher(cc, work); l != "" {
-		fmt.Printf("\n  全部好了！之後要再開：點桌面的「%s」\n", strings.TrimSuffix(filepath.Base(l), filepath.Ext(l)))
-	}
-	fmt.Println("  要換金鑰：再點一次這個安裝程式")
-	if *flagNoStart {
-		return nil
-	}
-	fmt.Println("\n  正在打開 Claude Code …")
-	time.Sleep(1500 * time.Millisecond)
-	cmd := exec.Command(cc)
-	cmd.Dir = work
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	cmd.Env = cleanEnv()
-	return cmd.Run()
 }
 
 func pause() {
@@ -484,6 +421,8 @@ var allowRules = []string{
 	"Bash(open *)", "Bash(start *)", "Bash(cmd //c start *)", "Bash(cmd.exe /c start *)", "Bash(explorer *)", "Bash(explorer.exe *)",
 	"Bash(ls)", "Bash(ls *)", "Bash(dir)", "Bash(dir *)", "Bash(pwd)", "Bash(find *)", "Bash(mkdir *)",
 	"Bash(mv *)", "Bash(cp *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)",
+	"Bash(curl *)", "Bash(unzip *)", "Bash(tar *)",
+	"Bash(powershell Expand-Archive *)", "Bash(powershell -Command Expand-Archive *)",
 	"WebFetch",
 }
 
@@ -542,7 +481,7 @@ func skipOnboarding(work string) error {
 	return writeJSON(p, m, 0o600)
 }
 
-func runTest(cc, work string) (string, error) {
+func runTestCC(cc, work string) (string, error) {
 	cmd := exec.Command(cc, "-p", "請只回覆四個字：準備好了")
 	cmd.Dir = work
 	cmd.Env = cleanEnv()
@@ -571,7 +510,7 @@ func cleanEnv() []string {
 	var env []string
 	for _, e := range os.Environ() {
 		u := strings.ToUpper(e)
-		if strings.HasPrefix(u, "ANTHROPIC_") || strings.HasPrefix(u, "CLAUDE") {
+		if strings.HasPrefix(u, "ANTHROPIC_") || strings.HasPrefix(u, "CLAUDE") || strings.HasPrefix(u, "ZAI_API_KEY=") || strings.HasPrefix(u, "ZHIPU_API_KEY=") {
 			continue
 		}
 		if *flagHome != "" && (strings.HasPrefix(u, "HOME=") || strings.HasPrefix(u, "USERPROFILE=") || strings.HasPrefix(u, "LOCALAPPDATA=") || strings.HasPrefix(u, "APPDATA=") || strings.HasPrefix(u, "XDG_")) {

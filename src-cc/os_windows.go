@@ -158,19 +158,65 @@ func keyDialog(hint string) (string, bool) {
 	return "", false
 }
 
-func makeLauncher(cc, work string) string {
-	desk := ""
-	if *flagHome != "" {
-		desk = filepath.Join(*flagHome, "Desktop")
-	} else if d, err := ps(`[Environment]::GetFolderPath('Desktop')`); err == nil {
-		desk = d
+func ocBinDir() string { return filepath.Join(localAppData(), "Programs", "ai-class") }
+func ocName() string   { return "opencode.exe" }
+func ocPlatform() string {
+	if nativeARM() {
+		return "windows-arm64"
 	}
-	if desk == "" {
+	return "windows-x64"
+}
+
+const toolPS = `Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
+$f=New-Object Windows.Forms.Form; $f.Text='AI 課程：選要用的工具'; $f.Size=New-Object Drawing.Size(560,330)
+$f.StartPosition='CenterScreen'; $f.TopMost=$true; $f.FormBorderStyle='FixedDialog'; $f.MaximizeBox=$false; $f.MinimizeBox=$false
+$font=New-Object Drawing.Font('Microsoft JhengHei UI',12); $big=New-Object Drawing.Font('Microsoft JhengHei UI',14,[Drawing.FontStyle]::Bold)
+$l=New-Object Windows.Forms.Label; $l.Text='老師沒特別說，就直接按 Enter（用 Claude Code）'; $l.Location='24,18'; $l.Size='510,30'; $l.Font=$font; $f.Controls.Add($l)
+$a=New-Object Windows.Forms.RadioButton; $a.Text=$env:AIC_A; $a.Location='34,60'; $a.Size='490,40'; $a.Font=$big; $a.Checked=$true; $f.Controls.Add($a)
+$b=New-Object Windows.Forms.RadioButton; $b.Text=$env:AIC_B; $b.Location='34,110'; $b.Size='490,40'; $b.Font=$big; $f.Controls.Add($b)
+$n=New-Object Windows.Forms.Label; $n.Text='再點一次安裝程式，可以換金鑰或改裝另一個'; $n.Location='24,165'; $n.Size='510,28'; $n.Font=$font; $n.ForeColor='DimGray'; $f.Controls.Add($n)
+$ok=New-Object Windows.Forms.Button; $ok.Text='下一步（Enter）'; $ok.Location='344,210'; $ok.Size='180,46'; $ok.Font=$font; $ok.DialogResult='OK'; $f.Controls.Add($ok); $f.AcceptButton=$ok
+$no=New-Object Windows.Forms.Button; $no.Text='取消'; $no.Location='224,210'; $no.Size='110,46'; $no.Font=$font; $no.DialogResult='Cancel'; $f.Controls.Add($no); $f.CancelButton=$no
+$f.Add_Shown({ $f.Activate(); $ok.Focus() })
+if($f.ShowDialog() -eq 'OK'){ if($b.Checked){'TOOL:opencode'} else {'TOOL:claude'} } else { 'CANCEL' }`
+
+func toolDialog(a, b string) (string, bool) {
+	out, err := ps(toolPS, "AIC_A="+a, "AIC_B="+b)
+	if err != nil {
+		return "", false
+	}
+	switch {
+	case strings.Contains(out, "CANCEL"):
+		fmt.Println("        你按了取消。之後再點一次這個安裝程式就可以裝。")
+		pause()
+		os.Exit(2)
+	case strings.Contains(out, "TOOL:opencode"):
+		return toolOC, true
+	case strings.Contains(out, "TOOL:claude"):
+		return toolCC, true
+	}
+	return "", false
+}
+
+func desktopDirs() []string {
+	if *flagHome != "" {
+		return []string{filepath.Join(*flagHome, "Desktop")}
+	}
+	if d, err := ps(`[Environment]::GetFolderPath('Desktop')`); err == nil && d != "" {
+		return []string{d}
+	}
+	return nil
+}
+
+func makeLauncher(exe, work, name string) string {
+	ds := desktopDirs()
+	if len(ds) == 0 {
 		return ""
 	}
-	os.MkdirAll(desk, 0o755)
-	p := filepath.Join(desk, "開始上課.cmd")
-	body := "@echo off\r\nchcp 65001 >nul\r\ntitle 開始上課\r\ncd /d \"" + work + "\"\r\n\"" + cc + "\"\r\n"
+	os.MkdirAll(ds[0], 0o755)
+	p := filepath.Join(ds[0], name+".cmd")
+	body := "@echo off\r\nchcp 65001 >nul\r\ntitle " + name + "\r\ncd /d \"" + work + "\"\r\n\"" + exe + "\"\r\n"
 	if os.WriteFile(p, []byte(body), 0o644) != nil {
 		return ""
 	}

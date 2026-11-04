@@ -28,14 +28,18 @@ func afterDownload(bin string) { exec.Command("xattr", "-d", "com.apple.quaranti
 func platformDeps() (map[string]string, error) { return nil, nil }
 
 func addToPath(dir string) {
+	shown := dir
+	if rel, err := filepath.Rel(home(), dir); err == nil && !strings.HasPrefix(rel, "..") {
+		shown = "$HOME/" + rel
+	}
 	for _, rc := range []string{".zshrc", ".bash_profile"} {
 		p := filepath.Join(home(), rc)
 		b, _ := os.ReadFile(p)
-		if strings.Contains(string(b), ".local/bin") {
+		if strings.Contains(string(b), shown) {
 			continue
 		}
 		if f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-			fmt.Fprintf(f, "\n# AI 課程安裝程式加的：Claude Code\nexport PATH=\"$HOME/.local/bin:$PATH\"\n")
+			fmt.Fprintf(f, "\n# AI 課程安裝程式加的\nexport PATH=\"%s:$PATH\"\n", shown)
 			f.Close()
 		}
 	}
@@ -79,13 +83,54 @@ func keyDialog(hint string) (string, bool) {
 	return "", false
 }
 
-func makeLauncher(cc, work string) string {
-	desk := filepath.Join(home(), "Desktop")
+func ocBinDir() string { return filepath.Join(home(), ".opencode", "bin") }
+func ocName() string   { return "opencode" }
+func ocPlatform() string {
+	if strings.HasSuffix(ccPlatform(), "arm64") {
+		return "darwin-arm64"
+	}
+	return "darwin-x64"
+}
+
+const toolAS = `try
+	set r to choose from list {(system attribute "AIC_A"), (system attribute "AIC_B")} with title "AI 課程：選要用的工具" with prompt "老師沒特別說，就直接按 Enter（用 Claude Code）。" default items {(system attribute "AIC_A")} OK button name "下一步" cancel button name "取消"
+on error
+	return "CANCEL"
+end try
+if r is false then return "CANCEL"
+if (item 1 of r) starts with "②" then return "TOOL:opencode"
+return "TOOL:claude"`
+
+func toolDialog(a, b string) (string, bool) {
+	cmd := exec.Command("osascript", "-e", toolAS)
+	cmd.Env = append(os.Environ(), "AIC_A="+a, "AIC_B="+b)
+	o, err := cmd.Output()
+	if err != nil {
+		return "", false
+	}
+	out := string(o)
+	switch {
+	case strings.Contains(out, "CANCEL"):
+		fmt.Println("        你按了取消。之後再點一次這個安裝程式就可以裝。")
+		pause()
+		os.Exit(2)
+	case strings.Contains(out, "TOOL:opencode"):
+		return toolOC, true
+	case strings.Contains(out, "TOOL:claude"):
+		return toolCC, true
+	}
+	return "", false
+}
+
+func desktopDirs() []string { return []string{filepath.Join(home(), "Desktop")} }
+
+func makeLauncher(exe, work, name string) string {
+	desk := desktopDirs()[0]
 	if _, err := os.Stat(desk); err != nil {
 		return ""
 	}
-	p := filepath.Join(desk, "開始上課.command")
-	if os.WriteFile(p, []byte("#!/bin/zsh\ncd \""+work+"\" && exec \""+cc+"\"\n"), 0o755) != nil {
+	p := filepath.Join(desk, name+".command")
+	if os.WriteFile(p, []byte("#!/bin/zsh\ncd \""+work+"\" && exec \""+exe+"\"\n"), 0o755) != nil {
 		return ""
 	}
 	return p

@@ -1,11 +1,20 @@
-# AI 課程一鍵安裝 v2（Claude Code ＋ Z.AI GLM-4.5-Flash 免費）
+# AI 課程一鍵安裝 v2.2（Claude Code 或 OpenCode ＋ Z.AI GLM-4.5-Flash 免費）
 
-學生只要：**點兩下 → 貼金鑰 → 按 Enter**，之後自動打開 Claude Code（在 `ai-class` 資料夾）。桌面會多一個「開始上課」，下次點它就好。
+學生只要：**點兩下 →（選工具，直接 Enter）→ 貼金鑰 → Enter**，之後自動打開（在 `ai-class` 資料夾）。下次點桌面的「開始上課（…）」就好。
 
 ## 下載
-- Windows（一般電腦）：https://github.com/temmo1004/ai-class-installer/releases/download/v2.0.0/AIClass-Windows-x64.exe
-- Windows（ARM，Surface Pro X／Copilot+ 筆電）：https://github.com/temmo1004/ai-class-installer/releases/download/v2.0.0/AIClass-Windows-ARM64.exe
-- Mac：https://github.com/temmo1004/ai-class-installer/releases/download/v2.0.0/AIClass-Mac.zip
+- Windows（一般電腦）：https://github.com/temmo1004/ai-class-installer/releases/latest/download/AIClass-Setup-Windows-x64.exe
+- Windows（ARM，Surface Pro X／Copilot+ 筆電）：https://github.com/temmo1004/ai-class-installer/releases/latest/download/AIClass-Setup-Windows-ARM64.exe
+- Mac：https://github.com/temmo1004/ai-class-installer/releases/latest/download/AIClass-Mac.zip
+
+## 兩個工具怎麼選
+- 點開會先跳「選要用的工具」：① Claude Code（推薦）、② OpenCode（比較快）。直接按 Enter＝①。
+- 已經裝過的會顯示「✓ 已安裝」。兩個都裝過，桌面就有「開始上課（Claude Code）」和「開始上課（OpenCode）」兩個捷徑。
+- 金鑰兩邊共用：換金鑰時兩個一起換。
+- 老師指定今天用哪個（不跳選擇視窗）：
+  - 把 exe 改名，檔名含 `opencode`（例如 `AIClass-opencode.exe`）就直接裝 OpenCode；含 `claude` 就直接裝 Claude Code。
+  - 或用參數：`AIClass-Setup-Windows-x64.exe --tool=opencode`；Mac：`curl -fsSL https://github.com/temmo1004/ai-class-installer/releases/latest/download/mac.sh | bash -s -- --tool=opencode`。
+- Claude Code 在 `ai-class/.claude/settings.json` 預設：改檔不問、常用指令（open/start、ls、find、mkdir、mv、cp、cat、head、tail、wc、curl、unzip、tar）不問；rm 仍然會問。
 
 ## 學生步驟
 1. 下載、點兩下。
