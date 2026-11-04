@@ -102,7 +102,7 @@ func run() error {
 		if err := saveKey(oc, work, key); err != nil {
 			return err
 		}
-		fmt.Println("        ✓ 金鑰存好了（存在 OpenCode 自己的資料裡，不會出現在檔案總管）")
+		fmt.Println("        ✓ 金鑰存好了（存在 OpenCode 自己的資料裡，不會留成文字檔）")
 	}
 	if err := setModel(cfgDir); err != nil {
 		return err
@@ -170,7 +170,7 @@ func installOpenCode() (string, error) {
 		return "", fmt.Errorf("建不了 %s：%v", dir, err)
 	}
 	url := dlBase + platformName() + ".zip"
-	fmt.Printf("        下載中（約 50–110 MB，網路慢要幾分鐘，請不要關掉這個視窗）\n")
+	fmt.Printf("        下載中（約 100–130 MB，網路慢要幾分鐘，請不要關掉這個視窗）\n")
 	tmp := filepath.Join(os.TempDir(), "ai-class-opencode.zip")
 	if err := download(url, tmp); err != nil {
 		return "", fmt.Errorf("下載失敗（%v）：檢查網路後再點一次", err)
