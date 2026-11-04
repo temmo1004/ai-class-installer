@@ -41,7 +41,7 @@ func works(exe string) bool {
 	return err == nil && fi.Size() > 1<<20 && strings.TrimSpace(output(exe, "", "--version")) != ""
 }
 
-// 預設工具：--tool 參數 ＞ 安裝程式檔名含 opencode／claude ＞ 跳選擇視窗（預設 Claude Code）
+// 預設工具：--tool 參數 ＞ 安裝程式檔名含 opencode／claude ＞ 跳選擇視窗（預設 OpenCode）
 func presetTool() string {
 	pick := func(s string) string {
 		s = strings.ToLower(s)
@@ -71,17 +71,17 @@ func chooseTool(ccOK, ocOK bool) string {
 		}
 		return ""
 	}
-	a := "① Claude Code（推薦）" + mark(ccOK)
-	b := "② OpenCode（比較快）" + mark(ocOK)
+	a := "① OpenCode（推薦）" + mark(ocOK)
+	b := "② Claude Code" + mark(ccOK)
 	if r, ok := toolDialog(a, b); ok {
 		return r
 	}
 	fmt.Printf("        1. %s\n        2. %s\n        選 1 或 2（直接按 Enter = 1）：", a, b)
 	s, _ := stdin.ReadString('\n')
 	if strings.TrimSpace(s) == "2" {
-		return toolOC
+		return toolCC
 	}
-	return toolCC
+	return toolOC
 }
 
 func run() error {

@@ -172,14 +172,14 @@ const toolPS = `Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyN
 $f=New-Object Windows.Forms.Form; $f.Text='AI 課程：選要用的工具'; $f.Size=New-Object Drawing.Size(560,330)
 $f.StartPosition='CenterScreen'; $f.TopMost=$true; $f.FormBorderStyle='FixedDialog'; $f.MaximizeBox=$false; $f.MinimizeBox=$false
 $font=New-Object Drawing.Font('Microsoft JhengHei UI',12); $big=New-Object Drawing.Font('Microsoft JhengHei UI',14,[Drawing.FontStyle]::Bold)
-$l=New-Object Windows.Forms.Label; $l.Text='老師沒特別說，就直接按 Enter（用 Claude Code）'; $l.Location='24,18'; $l.Size='510,30'; $l.Font=$font; $f.Controls.Add($l)
+$l=New-Object Windows.Forms.Label; $l.Text='老師沒特別說，就直接按 Enter（用 OpenCode）'; $l.Location='24,18'; $l.Size='510,30'; $l.Font=$font; $f.Controls.Add($l)
 $a=New-Object Windows.Forms.RadioButton; $a.Text=$env:AIC_A; $a.Location='34,60'; $a.Size='490,40'; $a.Font=$big; $a.Checked=$true; $f.Controls.Add($a)
 $b=New-Object Windows.Forms.RadioButton; $b.Text=$env:AIC_B; $b.Location='34,110'; $b.Size='490,40'; $b.Font=$big; $f.Controls.Add($b)
 $n=New-Object Windows.Forms.Label; $n.Text='再點一次安裝程式，可以換金鑰或改裝另一個'; $n.Location='24,165'; $n.Size='510,28'; $n.Font=$font; $n.ForeColor='DimGray'; $f.Controls.Add($n)
 $ok=New-Object Windows.Forms.Button; $ok.Text='下一步（Enter）'; $ok.Location='344,210'; $ok.Size='180,46'; $ok.Font=$font; $ok.DialogResult='OK'; $f.Controls.Add($ok); $f.AcceptButton=$ok
 $no=New-Object Windows.Forms.Button; $no.Text='取消'; $no.Location='224,210'; $no.Size='110,46'; $no.Font=$font; $no.DialogResult='Cancel'; $f.Controls.Add($no); $f.CancelButton=$no
 $f.Add_Shown({ $f.Activate(); $ok.Focus() })
-if($f.ShowDialog() -eq 'OK'){ if($b.Checked){'TOOL:opencode'} else {'TOOL:claude'} } else { 'CANCEL' }`
+if($f.ShowDialog() -eq 'OK'){ if($b.Checked){'TOOL:claude'} else {'TOOL:opencode'} } else { 'CANCEL' }`
 
 func toolDialog(a, b string) (string, bool) {
 	out, err := ps(toolPS, "AIC_A="+a, "AIC_B="+b)

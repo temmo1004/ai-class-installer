@@ -93,13 +93,13 @@ func ocPlatform() string {
 }
 
 const toolAS = `try
-	set r to choose from list {(system attribute "AIC_A"), (system attribute "AIC_B")} with title "AI 課程：選要用的工具" with prompt "老師沒特別說，就直接按 Enter（用 Claude Code）。" default items {(system attribute "AIC_A")} OK button name "下一步" cancel button name "取消"
+	set r to choose from list {(system attribute "AIC_A"), (system attribute "AIC_B")} with title "AI 課程：選要用的工具" with prompt "老師沒特別說，就直接按 Enter（用 OpenCode）。" default items {(system attribute "AIC_A")} OK button name "下一步" cancel button name "取消"
 on error
 	return "CANCEL"
 end try
 if r is false then return "CANCEL"
-if (item 1 of r) starts with "②" then return "TOOL:opencode"
-return "TOOL:claude"`
+if (item 1 of r) starts with "②" then return "TOOL:claude"
+return "TOOL:opencode"`
 
 func toolDialog(a, b string) (string, bool) {
 	cmd := exec.Command("osascript", "-e", toolAS)

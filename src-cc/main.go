@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	version  = "2.2.0"
+	version  = "2.3.0"
 	glmModel = "glm-4.5-flash"
 	zaiBase  = "https://api.z.ai/api/anthropic"
 	keyPage  = "https://z.ai/manage-apikey/apikey-list"
@@ -46,7 +46,7 @@ func main() {
 	flag.Parse()
 	platformInit()
 	fmt.Printf("\n  ==============================================\n")
-	fmt.Printf("    AI 課程一鍵安裝  Claude Code ／ OpenCode（v%s）\n", version)
+	fmt.Printf("    AI 課程一鍵安裝  OpenCode ／ Claude Code（v%s）\n", version)
 	fmt.Printf("  ==============================================\n\n")
 	if err := run(); err != nil {
 		fmt.Printf("\n  ✗ 沒有完成：%v\n", err)
