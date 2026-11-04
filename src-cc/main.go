@@ -422,6 +422,7 @@ var allowRules = []string{
 	"Bash(ls)", "Bash(ls *)", "Bash(dir)", "Bash(dir *)", "Bash(pwd)", "Bash(find *)", "Bash(mkdir *)",
 	"Bash(mv *)", "Bash(cp *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)",
 	"Bash(curl *)", "Bash(unzip *)", "Bash(tar *)",
+	"Bash(grep *)", "Bash(findstr *)", "Bash(powershell Select-String *)", "Bash(powershell -Command Select-String *)",
 	"Bash(powershell Expand-Archive *)", "Bash(powershell -Command Expand-Archive *)",
 	"WebFetch",
 }
