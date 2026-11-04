@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	version  = "2.0.0"
+	version  = "2.1.0"
 	glmModel = "glm-4.5-flash"
 	zaiBase  = "https://api.z.ai/api/anthropic"
 	keyPage  = "https://z.ai/manage-apikey/apikey-list"
@@ -79,7 +79,7 @@ func run() error {
 		return fmt.Errorf("建不了資料夾 %s：%v", work, err)
 	}
 	if _, err := os.Stat(filepath.Join(work, "CLAUDE.md")); err != nil {
-		os.WriteFile(filepath.Join(work, "CLAUDE.md"), []byte("# AI 課程\n\n- 一律用繁體中文（台灣用語）回答。\n- 使用者是第一次接觸程式的學生：步驟講清楚、一次一步、少用術語。\n"), 0o644)
+		os.WriteFile(filepath.Join(work, "CLAUDE.md"), []byte("# AI 課程\n\n- 一律用繁體中文（台灣用語）回答。\n- 使用者是第一次接觸程式的學生：步驟講清楚、一次一步、少用術語。\n- 打開網頁或檔案：Mac 用 `open 檔名`，Windows 用 `start 檔名`。\n- 指令一次只下一個，不要用 && 或 ; 串在一起。\n"), 0o644)
 	}
 	fmt.Printf("        ✓ 工作資料夾：%s\n\n", work)
 
@@ -479,7 +479,46 @@ func writeSettings(p, key string, extra map[string]string) error {
 }
 
 // 跳過第一次打開的主題選擇、登入畫面、「信任這個資料夾嗎」
+// 專案層權限（只在 ai-class 生效）：改檔不問、常用無害指令不問；不給 rm、不開 bypass
+var allowRules = []string{
+	"Bash(open *)", "Bash(start *)", "Bash(cmd //c start *)", "Bash(cmd.exe /c start *)", "Bash(explorer *)", "Bash(explorer.exe *)",
+	"Bash(ls)", "Bash(ls *)", "Bash(dir)", "Bash(dir *)", "Bash(pwd)", "Bash(find *)", "Bash(mkdir *)",
+	"Bash(mv *)", "Bash(cp *)", "Bash(cat *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)",
+	"WebFetch",
+}
+
+func projectPerms(work string) error {
+	p := filepath.Join(work, ".claude", "settings.json")
+	m := readJSON(p)
+	perm, _ := m["permissions"].(map[string]any)
+	if perm == nil {
+		perm = map[string]any{}
+	}
+	perm["defaultMode"] = "acceptEdits"
+	have := map[string]bool{}
+	var allow []any
+	if old, ok := perm["allow"].([]any); ok {
+		for _, r := range old {
+			if s, _ := r.(string); s != "" && !have[s] {
+				have[s] = true
+				allow = append(allow, s)
+			}
+		}
+	}
+	for _, r := range allowRules {
+		if !have[r] {
+			allow = append(allow, r)
+		}
+	}
+	perm["allow"] = allow
+	m["permissions"] = perm
+	return writeJSON(p, m, 0o644)
+}
+
 func skipOnboarding(work string) error {
+	if err := projectPerms(work); err != nil {
+		return err
+	}
 	p := filepath.Join(home(), ".claude.json")
 	m := readJSON(p)
 	m["hasCompletedOnboarding"] = true
